@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "rag-time-workshop"
+version = "0.1.0"
+description = ""
+authors = ["Fabrizio Mele <fabrizio@mele.io>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+langchain = "^0.2.3"
+langchain-aws = "^0.1.6"
+langchain-community = "^0.2.4"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
