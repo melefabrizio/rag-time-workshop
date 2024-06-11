@@ -1,35 +1,57 @@
 
 from langchain_community.vectorstores import FAISS
 from langchain_aws import BedrockEmbeddings, ChatBedrock
+from langchain_core.globals import set_debug
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from dotenv import load_dotenv
+from langchain_community.document_loaders import PyMuPDFLoader, WebBaseLoader
 
 load_dotenv()
 
+# set_debug(True)
+
+print("Preparing...")
 
 # LOAD, SPLIT AND CHUNK
 
 
-def load_data(file_path: str):
+def load_text(file_path: str):
     with open(file_path, 'r') as f:
         text = f.read()
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=2048,
+        chunk_overlap=100
+    )
+    text = text_splitter.create_documents([text])
     return text
 
 
-def split_data(data_to_split):
+def load_pdf(file_path: str):
+    loader = PyMuPDFLoader(file_path)
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=2000,
+        chunk_size=1500,
         chunk_overlap=100
     )
-    return text_splitter.create_documents([data_to_split])
+    return text_splitter.split_documents(loader.load())
 
 
-source = '../sources/de_bello_gallico.txt'
-data = load_data(source)
-chunks = split_data(data)
+def load_url(url: str):
+    loader = WebBaseLoader(url)
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1500,
+        chunk_overlap=100
+    )
+    return text_splitter.split_documents(loader.load())
+
+
+#source = 'https://gutenberg.org/cache/epub/59047/pg59047-images.html'
+#chunks = load_url(source)
+
+source = "../sources/artusi.txt"
+chunks = load_text(source)
 
 # EMBEDDING
 
@@ -39,14 +61,16 @@ embeddings = BedrockEmbeddings(  # Utilizziamo AWS Bedrock per ottenere gli embe
     # tipo di embedding generato, per cohere *deve* essere "search_document"
 )
 
-# FAISS è un vector store in-memory che permette di effettuare ricerche di similarità tra vettori
-vector_store = FAISS.from_documents(chunks, embeddings)
+# FAISS è un vector store in-memory
 
-# RICERCA E RISPOSTA
+vector_store = FAISS.from_documents(chunks, embeddings)
+retriever = vector_store.as_retriever(search_kwargs={"input_type": "search_query"})
+
+# PROMPT
 
 prompt_template = """
 You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question.
-If you don't know the answer, just say that you don't know. Use three sentences maximum and keep the answer concise.
+If you don't know the answer, just say that you don't know. Do not answer using your own knowledge, only the context provided.
 
 Question: {question} 
 
@@ -54,27 +78,19 @@ Context: {context}
 
 Answer:
 """
-
-query = "Chi erano gli allobrogi?"
-
-search_results = vector_store.search(query, k=5, search_type="similarity", input_type="search_query")
-
 prompt = PromptTemplate.from_template(prompt_template)
 
-llm = ChatBedrock(model_id="anthropic.claude-3-haiku-20240307-v1:0")
+# LET'S GO
 
-context = "\n".join([result.page_content for result in search_results])
-
-
-def return_search(_question: str):
-    return context
-
+llm = ChatBedrock(model_id="anthropic.claude-3-sonnet-20240229-v1:0")
 
 chain = (
-        {"context": return_search, "question": RunnablePassthrough()}
-        | prompt
-        | llm
-        | StrOutputParser()
+        {"context": retriever, "question": RunnablePassthrough()}  # input e retrieval
+        | prompt  # da input a prompt
+        | llm  # da prompt a risultato
+        | StrOutputParser()  # da risultato a stringa
 )
 
-print(chain.invoke(query))
+while True:
+    query = input("Ask a question: ")
+    print(chain.invoke(query))
