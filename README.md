@@ -21,8 +21,7 @@ log into the container with `docker exec -it app bash` and then resume from step
 
 ### Useful resources:
 
-- Langchain 0.2 documentation
-- Prompt engineering guide
-- Retrievers
-- RAG Chains
+- Langchain 0.2 documentation - https://python.langchain.com/v0.2/docs
+- Prompt engineering guide - https://www.promptingguide.ai/it/introduction/tips
+- Retrievers - https://python.langchain.com/v0.2/docs/how_to/#retrievers
 
