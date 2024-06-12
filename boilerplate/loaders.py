@@ -15,6 +15,10 @@ def load_text(file_path: str):
 
 def load_pdf(file_path: str):
     loader = PyMuPDFLoader(file_path)
+    # TODO
+    # Non è detto che il RecursiveCharacterTextSplitter sia sempre la scelta migliore.
+    # In alcuni casi, potrebbe essere meglio usare un altro splitter.
+    # https://python.langchain.com/v0.2/docs/how_to/#text-splitters
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=1500,
         chunk_overlap=100

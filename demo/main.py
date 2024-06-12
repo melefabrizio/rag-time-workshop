@@ -1,4 +1,4 @@
-import os
+import os, asyncio
 
 from langchain_community.vectorstores import FAISS
 from langchain_aws import BedrockEmbeddings, ChatBedrock
@@ -19,19 +19,17 @@ print("Preparing...")
 # LOAD, SPLIT AND CHUNK
 
 
-def load_text(file_path: str):
-    with open(file_path, 'r') as f:
-        text = f.read()
+def load_pdf(file_path: str):
+    loader = PyMuPDFLoader(file_path)
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=2048,
+        chunk_size=1500,
         chunk_overlap=100
     )
-    text = text_splitter.create_documents([text])
-    return text
+    return text_splitter.split_documents(loader.load())
 
 
-source = os.path.join(os.path.dirname(__file__), "../sources/artusi.txt")
-chunks = load_text(source)
+source = os.path.join(os.path.dirname(__file__), "../sources/viaggiare_sicuri_uk.pdf")
+chunks = load_pdf(source)
 
 # EMBEDDING
 
@@ -62,7 +60,7 @@ prompt = PromptTemplate.from_template(prompt_template)
 
 # LET'S GO
 
-llm = ChatBedrock(model_id="anthropic.claude-3-sonnet-20240229-v1:0")
+llm = ChatBedrock(model_id="anthropic.claude-3-haiku-20240307-v1:0")
 
 chain = (
         {"context": retriever, "question": RunnablePassthrough()}  # input e retrieval
@@ -71,6 +69,14 @@ chain = (
         | StrOutputParser()  # da risultato a stringa
 )
 
-while True:
-    query = input("Ask a question: ")
-    print(chain.invoke(query))
+
+async def main():
+    while True:
+        query = input("Ask a question: ")
+
+        async for r in chain.astream(query):
+            print(r, end="")
+        print()
+
+
+asyncio.run(main())
