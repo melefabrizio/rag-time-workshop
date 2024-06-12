@@ -1,3 +1,4 @@
+import os
 
 from langchain_community.vectorstores import FAISS
 from langchain_aws import BedrockEmbeddings, ChatBedrock
@@ -29,28 +30,7 @@ def load_text(file_path: str):
     return text
 
 
-def load_pdf(file_path: str):
-    loader = PyMuPDFLoader(file_path)
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1500,
-        chunk_overlap=100
-    )
-    return text_splitter.split_documents(loader.load())
-
-
-def load_url(url: str):
-    loader = WebBaseLoader(url)
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1500,
-        chunk_overlap=100
-    )
-    return text_splitter.split_documents(loader.load())
-
-
-#source = 'https://gutenberg.org/cache/epub/59047/pg59047-images.html'
-#chunks = load_url(source)
-
-source = "../sources/artusi.txt"
+source = os.path.join(os.path.dirname(__file__), "../sources/artusi.txt")
 chunks = load_text(source)
 
 # EMBEDDING

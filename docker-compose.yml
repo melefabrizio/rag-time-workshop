@@ -1,0 +1,8 @@
+version: '3'
+name: rag-time-workshop
+services:
+  app:
+    build: .
+    volumes:
+      - .:/app
+    command: tail -f /dev/null
