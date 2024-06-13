@@ -7,7 +7,7 @@
 3. Install poetry with `pip install poetry`
 4. Install the dependencies with `poetry install`
 5. Start a poetry shell with `poetry shell`
-6. Run the project with `python demo/main.py` or `python boilerplate/main.py`
+6. Run the project with `python demo/main.py` or `python workshop/main.py`
 
 If you want to run everything with docker, you can start the docker container with `docker compose up --build`,
 log into the container with `docker exec -it app bash` and then resume from step 5.
