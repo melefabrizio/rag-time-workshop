@@ -10,11 +10,12 @@ from langchain_core.runnables import RunnablePassthrough
 from langchain_core.vectorstores import VectorStoreRetriever
 from langchain_core.globals import set_debug
 
-from boilerplate.loaders import load_url, load_pdf, load_text
+from workshop.loaders import load_url, load_pdf, load_text
 
 from dotenv import load_dotenv
 
 
+# Questo funziona, non c'è bisogno di cambiarlo
 def load_files(sources: list[str]) -> list[Document]:
     chunks = []
     for source in sources:
@@ -38,6 +39,8 @@ def ingest(sources: list[str], overwrite_db=False) -> VectorStoreRetriever:
         model_id="cohere.embed-multilingual-v3",
     )
     print("Creating vector store...  ", end="")
+    # In caso di problemi di ingestion elimina la directory
+    # e seleziona l'overwrite_db al momento dell'avvio
     persist_directory = os.path.join(os.path.dirname(__file__), "../chroma_data")
 
     if overwrite_db:
@@ -63,15 +66,12 @@ def ingest(sources: list[str], overwrite_db=False) -> VectorStoreRetriever:
     return retriever
 
 # TODO:
-# Questo prompt funziona, ma non è molto intelligente.
-# Come si può migliorare? Si può adattare al nostro caso d'uso?
-# Per esempio: c'è modo di recuperare la pagina del documento da cui è stata estratta la risposta?
+# Questo prompt non è un prompt. È più un template per un prompt.
+# Prova a crearne uno reale e funzionante.
 # https://www.promptingguide.ai/it/introduction/tips
 # https://smith.langchain.com/hub/
 def prompt() -> PromptTemplate:
     prompt_template = """
-    Answer the question using the informations in the context.
-    
     Question: {question} 
     
     Context: {context} 
@@ -83,18 +83,21 @@ def prompt() -> PromptTemplate:
 
 def prepare_chain(sources: list[str] = [], overwrite_db=False):
     retriever = ingest(sources, overwrite_db)
-    llm = ChatBedrock(model_id="anthropic.claude-3-haiku-20240307-v1:0")
-
-    # TODO
-    # Questa catena di esecuzione è molto semplice, ma può essere personalizzata.
-    # Per esempio, può essere utile usare un altro llm+prompt per "preparare" la domanda al RAG,
-    # oppure usare un llm per fare un parsing a valle della generazione.
-    chain = (
-            {"context": retriever, "question": RunnablePassthrough()}  # input e retrieval
-            | prompt()  # da input a prompt
-            | llm  # da prompt a risultato
-            | StrOutputParser()  # da risultato a stringa
+    llm = ChatBedrock(
+        # Ci sono tanti modelli da provare, consulta il readme per vedere quelli disponibili
+        # Scegliere il modello giusto è importante, e può fare la differenza.
+        model_id="meta.llama2-70b-chat-v1",
+        # Temperatura 0.5? forse è troppo, o forse è troppo poco.
+        # È un parametro su cui si può giocare
+        model_kwargs={"temperature": 0.5}
     )
+
+    # TODO: Crea la chain. Quella della demo è un buon punto di partenza
+    # ma ci sono molte cose che possono essere migliorate.
+    # Si possono inserire degli step di pre o di post processing,
+    # per esempio per rielaborare il contesto prima di passarlo al retriever,
+    # oppure formattare il risultato, sempre usando un llm.
+    chain = ()
     return chain
 
 
@@ -105,12 +108,10 @@ async def run():
 
     while True:
         query = input("Ask a question: ")
-        async for r in chain.astream(query):
-            print(r, end="")
-        print()
+        print(chain.invoke(query))
 
 
 if __name__ == "__main__":
     load_dotenv()
-    set_debug(False)
+    set_debug(False)  # FIXME: Settato a True è utile per capire cosa succede dietro le quinte
     asyncio.run(run())
