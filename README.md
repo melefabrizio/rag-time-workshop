@@ -10,7 +10,7 @@
 6. Run the project with `python demo/main.py` or `python workshop/main.py`
 
 If you want to run everything with docker, you can start the docker container with `docker compose up --build`,
-log into the container with `docker exec -it app bash` and then resume from step 5.
+log into the container with `docker compose exec -it app bash`, and from the container resume from step 4.
 
 ### How to manage the dependencies
 
